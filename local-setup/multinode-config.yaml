@@ -1,0 +1,16 @@
+# -----------------------------------------------------------------------------
+# Kind Multi Node Cluster Configuration
+# This creates a 3-node Kubernetes cluster:
+#   - 1 Control Plane node
+#   - 2 Worker nodes
+# -----------------------------------------------------------------------------
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+  - role: worker
+  - role: worker

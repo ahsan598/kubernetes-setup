@@ -1,0 +1,14 @@
+# -----------------------------------------------------------------------------
+# Kind Cluster Configuration
+#
+# The control-plane node exposes port 30080 to the host machine.  
+# This is useful for accessing NodePort services from outside.
+# -----------------------------------------------------------------------------
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30080                   # Port inside the Kind node
+    hostPort: 30080                        # Port exposed on the host (localhost)
+    protocol: TCP

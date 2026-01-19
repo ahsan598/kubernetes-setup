@@ -1,6 +1,12 @@
-#  Setup Kubernetes using kubeadm [Version --> 1.34]
+#  Kubernetes Setup using kubeadm (Ubuntu 24.04)
 
-### 1. Install containerd runtime[On Master & Worker Nodes]
+**This guide sets up:**
+- 1 Control Plane
+- 2 Worker Nodes
+- CNI: `Flannel`
+- K8s version: `1.34`
+
+### 1. Install Container Runtime [Master & Worker]
 ```bash
 sudo apt-get update
 sudo apt install -y containerd
@@ -18,27 +24,21 @@ cat /etc/containerd/config.toml | grep -i SystemdCgroup -B 50
 sudo systemctl restart containerd
 ```
 
-### 2. Install Required Dependencies for Kubernetes[On Master & Worker Nodes]
+### 2. Install Kubernetes Packages [Master & Worker]
 ```bash
 sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
 sudo mkdir -p -m 755 /etc/apt/keyrings
-```
 
-### 3. Add Kubernetes Repository and GPG Key[On Master & Worker Nodes]
-```bash
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
-```
 
-### 4. Install Kubernetes Components[On Master & Worker Nodes]
-```bash
 sudo apt-get update
 sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
-### 5. Enable IP Forwarding & br_netfilter [On Master & Worker Nodes]
+### 3. Enable Networking Prerequisites [Master & Worker]
 ```sh
 # Load required kernel module
 sudo modprobe br_netfilter
@@ -64,30 +64,32 @@ sysctl net.bridge.bridge-nf-call-iptables
 sudo systemctl restart containerd
 ```
 
-### 6. Initialize Kubernetes Master Node [On MasterNode]
+### 4. Initialize Control Plane [Only Master]
 ```bash
 sudo kubeadm init --pod-network-cidr=10.244.0.0/16
 ```
 
-### 7. Configure Kubernetes Cluster [On MasterNode]
+**Configure kubectl:**
 ```bash
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-### 8. Deploy Networking Solution (Flannel) [On MasterNode]
+### 5. Install Flannel CNI [Only Master]
 ```bash
 kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 ```
 
-### 9. Join Worker Nodes to the Cluster
+### 6. Join Worker Nodes [On Workers]
+**Run the command shown after kubeadm init:**
 ```bash
-sudo kubeadm join 172.31.x.x:6443 --token abcdef.123456789 \
- --discovery-token-ca-cert-hash sha256:xxxxx
+sudo kubeadm join <MASTER_IP>:6443 \
+ --token xxxx \
+ --discovery-token-ca-cert-hash sha256:xxxx
 ```
 
-### 10. Verify Node Join and Test Pod Deployment
+### 7. Verify Cluster
 ```bash
 kubectl get nodes -o wide
 
@@ -97,4 +99,12 @@ kubectl get pods -n kube-flannel  -o wide
 
 # Test pod
 kubectl run nginx --image=nginx
+kubectl get pods -o wide
+```
+
+### 8. Common Checks
+```bash
+ls /run/flannel
+cat /run/flannel/subnet.env
+journalctl -u kubelet -f
 ```
